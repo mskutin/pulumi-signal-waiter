@@ -24,9 +24,13 @@
     "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"*.{json,md}\"",
     "type-check": "tsc --noEmit",
     "dev": "tsc --watch",
-    "validate": "npm run type-check && npm run lint && npm run format:check && npm test",
+    "validate": "npm run type-check && npm run lint && npm run format:check && npm test && npm run validate:docs",
+    "validate:lock": "npm ls --depth=0 > /dev/null",
     "docs:generate": "typedoc src/index.ts --out docs/api",
-    "examples:build": "tsc --project examples/tsconfig.json"
+    "examples:build": "tsc --noEmit examples/*.ts --skipLibCheck",
+    "validate:docs": ".github/validate-docs.sh",
+    "validate:workflows": ".github/validate-workflows.sh",
+    "ci:install": "npm ci || (echo 'npm ci failed, regenerating lock file' && rm -f package-lock.json && npm install)"
   },
   "keywords": [
     "pulumi",
@@ -72,7 +76,7 @@
     "typescript": "^5.0.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "jest": {
     "preset": "ts-jest",

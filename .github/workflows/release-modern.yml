@@ -1,0 +1,207 @@
+name: Modern Release & Publish
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags like v1.0.0
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  validate-and-test:
+    name: Validate & Test Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if this is a prerelease (contains -, alpha, beta, rc)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-|alpha|beta|rc) ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "📦 Pre-release version detected: $VERSION"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "🚀 Stable release version: $VERSION"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Verify package.json version matches tag
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.get_version.outputs.version }}"
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "package.json version: $PACKAGE_VERSION"
+            echo "Git tag version: $TAG_VERSION"
+            exit 1
+          fi
+          echo "✅ Versions match: $PACKAGE_VERSION"
+
+      - name: Run full test suite
+        run: |
+          npm run validate
+          npm run test:coverage
+
+      - name: Build package
+        run: npm run build
+
+      - name: Pack package for testing
+        run: npm pack
+
+      - name: Test package installation
+        run: |
+          mkdir test-install
+          cd test-install
+          npm init -y
+          npm install ../mskutin-pulumi-signal-waiter-*.tgz
+          node -e "const { SignalWaiter } = require('@mskutin/pulumi-signal-waiter'); console.log('✅ Package works:', typeof SignalWaiter);"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            *.tgz
+          retention-days: 1
+
+  publish-npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    needs: validate-and-test
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to NPM
+        run: |
+          if [[ "${{ needs.validate-and-test.outputs.is_prerelease }}" == "true" ]]; then
+            echo "📦 Publishing pre-release version with --tag beta"
+            npm publish --tag beta --provenance
+          else
+            echo "🚀 Publishing stable release with --tag latest"
+            npm publish --tag latest --provenance
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-and-test, publish-npm]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges HEAD~10..HEAD)
+            echo "## 🎉 Initial Release" > release_notes.md
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges ${LAST_TAG}..HEAD)
+            echo "## 🚀 What's Changed" > release_notes.md
+          fi
+          
+          echo "" >> release_notes.md
+          echo "$COMMITS" >> release_notes.md
+          echo "" >> release_notes.md
+          
+          # Add installation instructions
+          cat >> release_notes.md << EOF
+          ## 📦 Installation
+          
+          \`\`\`bash
+          npm install @mskutin/pulumi-signal-waiter@${{ needs.validate-and-test.outputs.version }}
+          \`\`\`
+          
+          ## 📚 Documentation
+          
+          - [README](https://github.com/mskutin/pulumi-signal-waiter#readme) - Complete usage guide
+          - [Examples](https://github.com/mskutin/pulumi-signal-waiter/tree/master/examples) - Practical examples
+          - [Troubleshooting](https://github.com/mskutin/pulumi-signal-waiter/blob/master/docs/TROUBLESHOOTING.md) - Common issues and solutions
+          
+          ## 🔗 Links
+          
+          - [NPM Package](https://www.npmjs.com/package/@mskutin/pulumi-signal-waiter)
+          - [GitHub Repository](https://github.com/mskutin/pulumi-signal-waiter)
+          - [Issues](https://github.com/mskutin/pulumi-signal-waiter/issues)
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.validate-and-test.outputs.version }}
+          name: Release v${{ needs.validate-and-test.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ needs.validate-and-test.outputs.is_prerelease == 'true' }}
+          files: |
+            *.tgz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-success:
+    name: Notify Release Success
+    runs-on: ubuntu-latest
+    needs: [validate-and-test, publish-npm, create-github-release]
+    if: success()
+
+    steps:
+      - name: Success notification
+        run: |
+          echo "🎉 Release v${{ needs.validate-and-test.outputs.version }} completed successfully!"
+          echo "📦 NPM: https://www.npmjs.com/package/@mskutin/pulumi-signal-waiter"
+          echo "🏷️ GitHub: https://github.com/mskutin/pulumi-signal-waiter/releases/tag/v${{ needs.validate-and-test.outputs.version }}"

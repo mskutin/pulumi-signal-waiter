@@ -184,7 +184,7 @@ For feature requests, please:
 
 ## 🔄 Pull Request Process
 
-1. **Fork the repository** and create your branch from `main`
+1. **Fork the repository** and create your branch from `master`
 
 2. **Make your changes** following the guidelines above
 
