@@ -2,154 +2,136 @@ name: Code Quality
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint-and-format:
     name: Lint & Format Check
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Check TypeScript compilation
-      run: npx tsc --noEmit
-      
-    - name: Run ESLint (when configured)
-      run: |
-        if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-          echo "Running ESLint..."
-          npx eslint . --ext .ts,.js
-        else
-          echo "⚠️ ESLint not configured, skipping..."
-        fi
-      continue-on-error: true
-      
-    - name: Check Prettier formatting (when configured)
-      run: |
-        if [ -f ".prettierrc" ] || [ -f ".prettierrc.json" ] || [ -f "prettier.config.js" ]; then
-          echo "Checking Prettier formatting..."
-          npx prettier --check "**/*.{ts,js,json,md}"
-        else
-          echo "⚠️ Prettier not configured, skipping..."
-        fi
-      continue-on-error: true
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Check TypeScript compilation
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check Prettier formatting
+        run: npm run format:check
 
   type-check:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run TypeScript compiler
-      run: npx tsc --noEmit --strict
-      
-    - name: Check for unused exports
-      run: |
-        echo "🔍 Checking for unused exports..."
-        # This would require ts-unused-exports or similar tool
-        # npx ts-unused-exports tsconfig.json
-        echo "✅ Type checking completed"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run TypeScript compiler
+        run: npx tsc --noEmit --strict
+
+      - name: Check examples TypeScript
+        run: npm run examples:build
 
   documentation-check:
     name: Documentation Check
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Check README links
-      run: |
-        echo "🔍 Checking README links..."
-        # Check if README has basic sections
-        if ! grep -q "## Installation" README.md; then
-          echo "❌ Missing Installation section in README"
-          exit 1
-        fi
-        
-        if ! grep -q "## Usage" README.md; then
-          echo "❌ Missing Usage section in README"
-          exit 1
-        fi
-        
-        echo "✅ README structure looks good"
-        
-    - name: Validate package.json
-      run: |
-        echo "🔍 Validating package.json..."
-        node -e "
-          const pkg = require('./package.json');
-          const required = ['name', 'version', 'description', 'main', 'types', 'repository', 'license'];
-          const missing = required.filter(field => !pkg[field]);
-          if (missing.length > 0) {
-            console.error('❌ Missing required fields:', missing.join(', '));
-            process.exit(1);
-          }
-          console.log('✅ package.json is valid');
-        "
-        
-    - name: Check TypeScript documentation
-      run: |
-        echo "🔍 Checking TypeScript documentation..."
-        # Check if main exports are documented
-        if ! grep -q "@param" signalWaiter.ts; then
-          echo "⚠️ Consider adding JSDoc comments to parameters"
-        fi
-        
-        if ! grep -q "@returns" signalWaiter.ts; then
-          echo "⚠️ Consider adding JSDoc @returns documentation"
-        fi
-        
-        echo "✅ Documentation check completed"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check README links
+        run: |
+          echo "🔍 Checking README links..."
+          # Check if README has basic sections
+          if ! grep -q "## Installation" README.md; then
+            echo "❌ Missing Installation section in README"
+            exit 1
+          fi
+          
+          if ! grep -q "## Usage" README.md; then
+            echo "❌ Missing Usage section in README"
+            exit 1
+          fi
+          
+          echo "✅ README structure looks good"
+
+      - name: Validate package.json
+        run: |
+          echo "🔍 Validating package.json..."
+          node -e "
+            const pkg = require('./package.json');
+            const required = ['name', 'version', 'description', 'main', 'types', 'repository', 'license'];
+            const missing = required.filter(field => !pkg[field]);
+            if (missing.length > 0) {
+              console.error('❌ Missing required fields:', missing.join(', '));
+              process.exit(1);
+            }
+            console.log('✅ package.json is valid');
+          "
+
+      - name: Check TypeScript documentation
+        run: |
+          echo "🔍 Checking TypeScript documentation..."
+          # Check if main exports are documented
+          if ! grep -q "@param" src/signalWaiter.ts; then
+            echo "⚠️ Consider adding JSDoc comments to parameters"
+          fi
+          
+          if ! grep -q "@returns" src/signalWaiter.ts; then
+            echo "⚠️ Consider adding JSDoc @returns documentation"
+          fi
+          
+          echo "✅ Documentation check completed"
 
   build-matrix:
     name: Build Matrix Test
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [16.x, 18.x, 20.x]
-        
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build project
-      run: npm run build
-      
-    - name: Run tests
-      run: npm test
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test

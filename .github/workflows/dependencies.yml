@@ -51,7 +51,7 @@ jobs:
     - name: Run tests after update
       if: steps.check_updates.outputs.updates_available == 'true'
       run: |
-        npm ci
+        npm ci || npm install
         npm test
         npm run build
         
@@ -99,7 +99,7 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: npm ci || npm install
       
     - name: Run security audit
       run: |
