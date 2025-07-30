@@ -28,6 +28,7 @@
     "validate:lock": "npm ls --depth=0 > /dev/null",
     "docs:generate": "typedoc src/index.ts --out docs/api",
     "examples:build": "tsc --noEmit examples/*.ts --skipLibCheck",
+    "validate:workflows": ".github/validate-workflows.sh",
     "ci:install": "npm ci || (echo 'npm ci failed, regenerating lock file' && rm -f package-lock.json && npm install)"
   },
   "keywords": [
@@ -74,7 +75,7 @@
     "typescript": "^5.0.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "jest": {
     "preset": "ts-jest",

@@ -1,8 +1,11 @@
 # 📦 pulumi-signal-waiter
 
-[![npm version](https://img.shields.io/npm/v/@yourorg/pulumi-signal-waiter.svg?style=flat-square)](https://www.npmjs.com/package/@yourorg/pulumi-signal-waiter)
+[![npm version](https://img.shields.io/npm/v/@mskutin/pulumi-signal-waiter.svg?style=flat-square)](https://www.npmjs.com/package/@mskutin/pulumi-signal-waiter)
+[![CI/CD Pipeline](https://github.com/mskutin/pulumi-signal-waiter/actions/workflows/ci.yml/badge.svg)](https://github.com/mskutin/pulumi-signal-waiter/actions/workflows/ci.yml)
+[![Code Quality](https://github.com/mskutin/pulumi-signal-waiter/actions/workflows/code-quality.yml/badge.svg)](https://github.com/mskutin/pulumi-signal-waiter/actions/workflows/code-quality.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Pulumi](https://img.shields.io/badge/pulumi-aws-blue.svg?style=flat-square)](https://www.pulumi.com)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
 > A reusable Pulumi component that **blocks stack execution** until a bootstrap
 > **signal message** is received from an AWS SQS queue. Ideal for coordinating

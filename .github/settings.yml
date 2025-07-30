@@ -18,7 +18,7 @@ repository:
   has_wiki: false
   has_downloads: true
   
-  default_branch: main
+  default_branch: master
   
   allow_squash_merge: true
   allow_merge_commit: false
@@ -28,7 +28,7 @@ repository:
 
 # Branch protection rules
 branches:
-  - name: main
+  - name: master
     protection:
       required_status_checks:
         strict: true

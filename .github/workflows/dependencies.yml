@@ -3,120 +3,120 @@ name: Dependency Updates
 on:
   schedule:
     # Run every Monday at 9 AM UTC
-    - cron: '0 9 * * 1'
-  workflow_dispatch:  # Allow manual trigger
+    - cron: "0 9 * * 1"
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   update-dependencies:
     name: Update Dependencies
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        
-    - name: Check for dependency updates
-      id: check_updates
-      run: |
-        npm outdated --json > outdated.json || true
-        if [ -s outdated.json ]; then
-          echo "updates_available=true" >> $GITHUB_OUTPUT
-          echo "📦 Dependencies with updates available:"
-          cat outdated.json | jq -r 'to_entries[] | "- \(.key): \(.value.current) → \(.value.wanted)"'
-        else
-          echo "updates_available=false" >> $GITHUB_OUTPUT
-          echo "✅ All dependencies are up to date"
-        fi
-        
-    - name: Update dependencies
-      if: steps.check_updates.outputs.updates_available == 'true'
-      run: |
-        # Update patch and minor versions only (safer)
-        npm update
-        
-        # Check if package-lock.json changed
-        if git diff --quiet package-lock.json; then
-          echo "No changes to package-lock.json"
-          exit 0
-        fi
-        
-    - name: Run tests after update
-      if: steps.check_updates.outputs.updates_available == 'true'
-      run: |
-        npm ci || npm install
-        npm test
-        npm run build
-        
-    - name: Create Pull Request
-      if: steps.check_updates.outputs.updates_available == 'true'
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'chore: update dependencies'
-        title: '🔄 Automated dependency updates'
-        body: |
-          ## 📦 Dependency Updates
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Check for dependency updates
+        id: check_updates
+        run: |
+          npm outdated --json > outdated.json || true
+          if [ -s outdated.json ]; then
+            echo "updates_available=true" >> $GITHUB_OUTPUT
+            echo "📦 Dependencies with updates available:"
+            cat outdated.json | jq -r 'to_entries[] | "- \(.key): \(.value.current) → \(.value.wanted)"'
+          else
+            echo "updates_available=false" >> $GITHUB_OUTPUT
+            echo "✅ All dependencies are up to date"
+          fi
+
+      - name: Update dependencies
+        if: steps.check_updates.outputs.updates_available == 'true'
+        run: |
+          # Update patch and minor versions only (safer)
+          npm update
           
-          This PR contains automated dependency updates.
-          
-          ### Changes
-          - Updated patch and minor versions of dependencies
-          - All tests pass with updated dependencies
-          
-          ### Verification
-          - ✅ Tests pass
-          - ✅ Build succeeds
-          - ✅ No breaking changes detected
-          
-          **Note:** This PR was created automatically. Please review the changes before merging.
-          
-        branch: automated/dependency-updates
-        delete-branch: true
-        labels: |
-          dependencies
-          automated
-          
+          # Check if package-lock.json changed
+          if git diff --quiet package-lock.json; then
+            echo "No changes to package-lock.json"
+            exit 0
+          fi
+
+      - name: Run tests after update
+        if: steps.check_updates.outputs.updates_available == 'true'
+        run: |
+          npm ci || npm install
+          npm test
+          npm run build
+
+      - name: Create Pull Request
+        if: steps.check_updates.outputs.updates_available == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update dependencies"
+          title: "🔄 Automated dependency updates"
+          body: |
+            ## 📦 Dependency Updates
+            
+            This PR contains automated dependency updates.
+            
+            ### Changes
+            - Updated patch and minor versions of dependencies
+            - All tests pass with updated dependencies
+            
+            ### Verification
+            - ✅ Tests pass
+            - ✅ Build succeeds
+            - ✅ No breaking changes detected
+            
+            **Note:** This PR was created automatically. Please review the changes before merging.
+            
+          branch: automated/dependency-updates
+          delete-branch: true
+          labels: |
+            dependencies
+            automated
+
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci || npm install
-      
-    - name: Run security audit
-      run: |
-        echo "🔍 Running security audit..."
-        npm audit --audit-level=moderate
-        
-    - name: Check for vulnerabilities
-      run: |
-        AUDIT_RESULT=$(npm audit --audit-level=moderate --json)
-        VULNERABILITY_COUNT=$(echo "$AUDIT_RESULT" | jq '.metadata.vulnerabilities.total // 0')
-        
-        if [ "$VULNERABILITY_COUNT" -gt 0 ]; then
-          echo "⚠️ Found $VULNERABILITY_COUNT vulnerabilities"
-          echo "$AUDIT_RESULT" | jq '.vulnerabilities'
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run security audit
+        run: |
+          echo "🔍 Running security audit..."
+          npm audit --audit-level=moderate
+
+      - name: Check for vulnerabilities
+        run: |
+          AUDIT_RESULT=$(npm audit --audit-level=moderate --json)
+          VULNERABILITY_COUNT=$(echo "$AUDIT_RESULT" | jq '.metadata.vulnerabilities.total // 0')
           
-          # Create an issue if vulnerabilities are found
-          echo "Creating security issue..."
-        else
-          echo "✅ No security vulnerabilities found"
-        fi
+          if [ "$VULNERABILITY_COUNT" -gt 0 ]; then
+            echo "⚠️ Found $VULNERABILITY_COUNT vulnerabilities"
+            echo "$AUDIT_RESULT" | jq '.vulnerabilities'
+            
+            # Create an issue if vulnerabilities are found
+            echo "Creating security issue..."
+          else
+            echo "✅ No security vulnerabilities found"
+          fi
