@@ -103,6 +103,33 @@ else
 fi
 
 echo ""
+echo "📋 Validating README structure..."
+if [ -f "README.md" ]; then
+    if ! grep -q "## .*Installation" README.md; then
+        echo "❌ Missing Installation section in README.md"
+        ISSUES_FOUND=$((ISSUES_FOUND + 1))
+    else
+        echo "✅ Installation section found in README.md"
+    fi
+    
+    if ! grep -q "## .*Usage" README.md; then
+        echo "❌ Missing Usage section in README.md"
+        ISSUES_FOUND=$((ISSUES_FOUND + 1))
+    else
+        echo "✅ Usage section found in README.md"
+    fi
+    
+    if ! grep -q "## .*License" README.md; then
+        echo "⚠️  Consider adding a License section to README.md"
+    else
+        echo "✅ License section found in README.md"
+    fi
+else
+    echo "❌ README.md not found"
+    ISSUES_FOUND=$((ISSUES_FOUND + 1))
+fi
+
+echo ""
 echo "🏁 Validation complete!"
 
 if [ $ISSUES_FOUND -gt 0 ]; then
