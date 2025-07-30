@@ -108,7 +108,7 @@ const instance = new aws.ec2.Instance("appInstance", {
 ## 🏗️ Roadmap
 
 - [ ] Add SNS / HTTP webhook signal support
-- [ ] Support for multiple messages (e.g., N-of-M signals)
+- [x] Support for multiple messages (e.g., N-of-M signals)
 - [ ] Python version of the component
 - [ ] Packaged as official Pulumi ComponentResource
 
