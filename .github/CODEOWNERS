@@ -1,0 +1,20 @@
+# Global owners
+* @mskutin
+
+# Core TypeScript files
+*.ts @mskutin
+
+# Package configuration
+package.json @mskutin
+tsconfig.json @mskutin
+
+# GitHub workflows and configuration
+.github/ @mskutin
+
+# Documentation
+README.md @mskutin
+*.md @mskutin
+
+# Examples
+examples/ @mskutin
+example.ts @mskutin

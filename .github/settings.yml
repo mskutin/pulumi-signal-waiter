@@ -1,0 +1,90 @@
+# Repository settings for GitHub
+repository:
+  name: pulumi-signal-waiter
+  description: "A reusable Pulumi component that blocks stack execution until a bootstrap signal message is received from an AWS SQS queue"
+  homepage: https://github.com/mskutin/pulumi-signal-waiter
+  topics: 
+    - pulumi
+    - aws
+    - sqs
+    - bootstrap
+    - infrastructure-as-code
+    - typescript
+    - dynamic-provider
+  
+  private: false
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+  
+  default_branch: main
+  
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  
+  delete_branch_on_merge: true
+
+# Branch protection rules
+branches:
+  - name: main
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Test & Build (16.x)"
+          - "Test & Build (18.x)" 
+          - "Test & Build (20.x)"
+          - "TypeScript Type Check"
+          - "Security Audit"
+      
+      enforce_admins: false
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+        
+      restrictions: null
+      
+      required_linear_history: false
+      allow_force_pushes: false
+      allow_deletions: false
+
+# Labels for issues and PRs
+labels:
+  - name: bug
+    color: d73a4a
+    description: Something isn't working
+    
+  - name: enhancement
+    color: a2eeef
+    description: New feature or request
+    
+  - name: documentation
+    color: 0075ca
+    description: Improvements or additions to documentation
+    
+  - name: good first issue
+    color: 7057ff
+    description: Good for newcomers
+    
+  - name: help wanted
+    color: 008672
+    description: Extra attention is needed
+    
+  - name: dependencies
+    color: 0366d6
+    description: Pull requests that update a dependency file
+    
+  - name: automated
+    color: ededed
+    description: Automated changes
+    
+  - name: breaking-change
+    color: b60205
+    description: Breaking change that requires major version bump
+    
+  - name: security
+    color: ee0701
+    description: Security related issue or improvement
